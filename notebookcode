@@ -1,0 +1,63 @@
+### COPY BELOW CODE INTO YOUR FABRIC NOTEBOOK  ########################
+
+import requests
+# from pyspark.sql import SparkSession
+
+# # Initialize Spark session
+# spark = SparkSession.builder.appName("Load CSV Data from API").getOrCreate()
+
+# Define API URL and OneLake location
+url = "https://raw.githubusercontent.com/MicrosoftLearning/dp-data/main/sales.csv"
+oneLake_path = "Files/sales.csv"  # Fabric OneLake path inside your Lakehouse
+
+# Fetch the CSV data
+response = requests.get(url)
+
+# Save the CSV to OneLake
+with open(f"/lakehouse/default/{oneLake_path}", "wb") as file:
+    file.write(response.content)
+
+df = spark.read.format("csv").option("header","true").load("Files/sales.csv")
+# df now is a Spark DataFrame containing CSV data from "Files/sales.csv".
+display(df)
+
+target_table_path = f"abfss://DevLab_Session@onelake.dfs.fabric.microsoft.com/DevLab_LH.Lakehouse/Tables/dbo/sales"
+
+# Used for manual updates to the schema and data
+df_spark.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(target_table_path)
+
+
+
+################# ALTERNATE PANDAS APPROACH ###################################
+
+import requests
+import pandas as pd
+from io import StringIO
+# from pyspark.sql import SparkSession
+
+# # Initialize Spark session
+# spark = SparkSession.builder.appName("Load CSV Data from API").getOrCreate()
+
+# Define API URL (Assuming it returns CSV)
+url = "https://raw.githubusercontent.com/MicrosoftLearning/dp-data/main/sales.csv"
+
+# Fetch the CSV data
+response = requests.get(url)
+
+# Convert CSV text into a Pandas DataFrame
+csv_data = StringIO(response.text)
+df_pandas = pd.read_csv(csv_data)
+
+# Convert Pandas DataFrame to PySpark DataFrame
+df_spark = spark.createDataFrame(df_pandas)
+
+# Show DataFrame
+df_spark.show(10, truncate=False)
+
+# Print schema
+df_spark.printSchema()
+
+target_table_path = f"abfss://DevLab_Session@onelake.dfs.fabric.microsoft.com/DevLab_LH.Lakehouse/Tables/dbo/sales"
+
+# Used for manual updates to the schema and data
+df_spark.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(target_table_path)
